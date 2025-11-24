@@ -34,83 +34,78 @@ __Procedure__:
 
 ### PROGRAM :
 ~~~
-clear;
-close;
+Fs = 56300;
+t = 0:1/Fs:0.02;
 
-// ---------- settings ----------
-PI = 3.14;                // use 3.14 as requested
-fs = 80000;               // high sampling rate -> smooth plots
-t = 0:1/fs:0.01;          // time vector
+m1 = sin(2*%pi*200*t);
+m2 = sin(2*%pi*300*t);
+m3 = sin(2*%pi*400*t);
+m4 = sin(2*%pi*500*t);
+m5 = sin(2*%pi*600*t);
+m6 = sin(2*%pi*700*t);
 
-fm = [200, 400, 600, 800, 1000, 1200];       // message freqs (Hz)
-fc = [5000, 7000, 9000, 11000, 13000, 15000]; // carrier freqs (Hz)
+c1 = 3000; c2 = 6000; c3 = 9000; c4 = 12000; c5 = 15000; c6 = 18000;
 
-// ---------- generate message signals ----------
-m = zeros(length(fm), length(t));
-for i = 1:length(fm)
-    m(i, :) = sin(2 * PI * fm(i) * t);
-end
+carrier1 = cos(2*%pi*c1*t);
+carrier2 = cos(2*%pi*c2*t);
+carrier3 = cos(2*%pi*c3*t);
+carrier4 = cos(2*%pi*c4*t);
+carrier5 = cos(2*%pi*c5*t);
+carrier6 = cos(2*%pi*c6*t);
 
-// ---------- multiplex (AM with cosine carriers) ----------
-fdm = zeros(1, length(t));
-for i = 1:length(fc)
-    carrier = cos(2 * PI * fc(i) * t);
-    fdm = fdm + m(i, :) .* carrier;
-end
+s1 = m1 .* carrier1;
+s2 = m2 .* carrier2;
+s3 = m3 .* carrier3;
+s4 = m4 .* carrier4;
+s5 = m5 .* carrier5;
+s6 = m6 .* carrier6;
 
-// ---------- design FIR low-pass filter (sinc * Hamming) ----------
-fc_cut = 2000;           // cutoff 2 kHz (pass message band)
-M = 200;                 // half filter order -> filter length = 2*M+1 = 401
-n = -M:M;
-wc = 2 * fc_cut / fs;    // normalized (0..1) where 1 => Nyquist
+s_total = s1 + s2 + s3 + s4 + s5 + s6;
 
-// ideal sinc (note: use PI for pi)
-sinc = zeros(n);
-for k = 1:length(n)
-    x = 2 * fc_cut * n(k) / fs;               // x = 2*fc_cut*n/fs
-    if x == 0 then
-        sinc(k) = 1;
-    else
-        // sinc(x) = sin(pi * x) / (pi * x)
-        sinc(k) = sin(PI * x) / (PI * x);
-    end
-end
+// Demultiplex: multiply by carriers to shift each band back to baseband
+r1 = s_total .* carrier1;
+r2 = s_total .* carrier2;
+r3 = s_total .* carrier3;
+r4 = s_total .* carrier4;
+r5 = s_total .* carrier5;
+r6 = s_total .* carrier6;
 
-// ideal impulse response scaled by cutoff (2*fc_cut/fs)
-h_ideal = (2 * fc_cut / fs) * sinc;
+// Simple FFT-based ideal low-pass filter (avoids butter/toolbox issues)
+function y = ideal_lowpass_fft(x, Fs, fc)
+    N = length(x);
+    X = fft(x);
+    f = Fs*(0:N-1)/N;
+    mask = (f <= fc) | (f >= Fs-fc);
+    Y = X .* mask;
+    y = real(ifft(Y));
+endfunction
 
-// apply Hamming window
-w = 0.54 - 0.46 * cos(2 * PI * (n + M) / (2*M)); // Hamming length 2M+1
-h = h_ideal .* w;
+fc = 1000;
+dm1 = ideal_lowpass_fft(r1, Fs, fc);
+dm2 = ideal_lowpass_fft(r2, Fs, fc);
+dm3 = ideal_lowpass_fft(r3, Fs, fc);
+dm4 = ideal_lowpass_fft(r4, Fs, fc);
+dm5 = ideal_lowpass_fft(r5, Fs, fc);
+dm6 = ideal_lowpass_fft(r6, Fs, fc);
 
-// normalize filter gain at DC
-h = h / sum(h);
+figure(1);
+subplot(3,2,1); plot(t,m1); title("Message Signal 1");
+subplot(3,2,2); plot(t,m2); title("Message Signal 2");
+subplot(3,2,3); plot(t,m3); title("Message Signal 3");
+subplot(3,2,4); plot(t,m4); title("Message Signal 4");
+subplot(3,2,5); plot(t,m5); title("Message Signal 5");
+subplot(3,2,6); plot(t,m6); title("Message Signal 6");
 
-// ---------- demodulate (coherent detection + LPF) ----------
-demod = zeros(length(fm), length(t));
-for i = 1:length(fc)
-    x = fdm .* cos(2 * PI * fc(i) * t);     // mix to baseband
-    y = conv(x, h, 'same');                 // filter (same length)
-    demod(i, :) = y;
-end
+figure(2);
+plot(t, s_total); title("Multiplexed FDM Signal");
 
-// ---------- plots ----------
-scf(1); clf;
-for i = 1:size(m,1)
-    subplot(size(m,1),1,i);
-    plot(t, m(i,:));
-end
-
-scf(2); clf;
-plot(t, fdm);
-
-scf(3); clf;
-for i = 1:size(demod,1)
-    subplot(size(demod,1),1,i);
-    plot(t, demod(i,:));
-end
-
-disp("Done: smooth demodulated signals.");
+figure(3);
+subplot(3,2,1); plot(t,dm1); title("Recovered Signal 1");
+subplot(3,2,2); plot(t,dm2); title("Recovered Signal 2");
+subplot(3,2,3); plot(t,dm3); title("Recovered Signal 3");
+subplot(3,2,4); plot(t,dm4); title("Recovered Signal 4");
+subplot(3,2,5); plot(t,dm5); title("Recovered Signal 5");
+subplot(3,2,6); plot(t,dm6); title("Recovered Signal 6");
 ~~~
 __Output_:
 <img width="1080" height="1569" alt="image" src="https://github.com/user-attachments/assets/6519282a-9bdb-4d07-affa-aca5cbdfb6e3" />
