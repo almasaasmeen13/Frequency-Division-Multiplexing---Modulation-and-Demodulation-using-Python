@@ -108,10 +108,12 @@ subplot(3,2,5); plot(t,dm5); title("Recovered Signal 5");
 subplot(3,2,6); plot(t,dm6); title("Recovered Signal 6");
 ~~~
 __Output_:
-<img width="1080" height="1569" alt="image" src="https://github.com/user-attachments/assets/6519282a-9bdb-4d07-affa-aca5cbdfb6e3" />
+![WhatsApp Image 2025-11-29 at 12 15 34_a0435432](https://github.com/user-attachments/assets/0f986abe-cd5c-4532-939b-a4068cb8acdf)
 <img width="1004" height="1272" alt="image" src="https://github.com/user-attachments/assets/d48d2124-612a-44c2-b8ae-b0770a818992" />
 <img width="959" height="730" alt="image" src="https://github.com/user-attachments/assets/d788aca6-41c1-4fa9-a745-c2544fe64683" />
 
 
 __Result__:
+![WhatsApp Image 2025-11-29 at 12 19 07_f1b53338](https://github.com/user-attachments/assets/571b0ae0-f488-4831-a75c-81d25cf4036a)
+
 
